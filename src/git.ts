@@ -226,8 +226,8 @@ const CHARS_PER_TOKEN = 4;
  * Get diff for a single commit.
  */
 export function getCommitDiff(hash: string): { stat: string; patch: string } {
-  const stat = git(`show --stat --format="" --no-binary "${hash}"`);
-  const patch = git(`show --patch --format="" --no-binary "${hash}"`);
+  const stat = git(`show --stat --format="" "${hash}"`);
+  const patch = git(`show --patch --format="" "${hash}"`);
   return { stat, patch };
 }
 
@@ -292,7 +292,7 @@ export function getCommitDiffs(
         i++
       ) {
         const c = commits[i];
-        const s = git(`show --stat --format="" --no-binary "${c.hash}"`);
+        const s = git(`show --stat --format="" "${c.hash}"`);
         results.push({
           ...c,
           stat: s,
