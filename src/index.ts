@@ -3,7 +3,7 @@
 import { parseArgs } from "node:util";
 import { login, logout, authStatus, listProviders, listModelsCmd } from "./auth.js";
 import { releaseNotesCommand } from "./commands/release-notes.js";
-import { reviewCommand } from "./commands/review.js";
+import { reviewCommand, reviewGitHubPrCommand, parseGitHubPrRef } from "./commands/review.js";
 import { getDefaultProvider, getDefaultModel, showConfig, setDefaultModel, setDefaultProvider } from "./config.js";
 
 // ---------------------------------------------------------------------------
@@ -59,6 +59,8 @@ Examples:
   gitgenie release-notes v1.0 v1.1 --deep --save
   gitgenie review abc123
   gitgenie review abc123 def456 --save
+  gitgenie review 550
+  gitgenie review https://github.com/owner/repo/pull/550
   gitgenie list-models anthropic
   gitgenie config set-model anthropic claude-opus-4-5
   gitgenie config set-provider anthropic
@@ -204,16 +206,30 @@ async function handleReview(args: string[]): Promise<void> {
   });
 
   if (positionals.length < 1) {
-    console.error("Usage: gitgenie review <commit> [end-commit] [options]");
+    console.error("Usage: gitgenie review <commit|github-pr-url> [end-commit] [options]");
     console.error("");
     console.error("Examples:");
     console.error("  gitgenie review abc123");
     console.error("  gitgenie review abc123 def456 --save");
+    console.error("  gitgenie review https://github.com/owner/repo/pull/123");
     process.exit(1);
   }
 
   const provider = values.provider ?? defaultProvider;
   const model = values.model ?? getDefaultModel(provider);
+
+  // If the first positional is a GitHub PR URL or number, use the gh-cli path
+  if (parseGitHubPrRef(positionals[0])) {
+    await reviewGitHubPrCommand({
+      prRef: parseGitHubPrRef(positionals[0])!,
+      save: values.save,
+      output: values.output,
+      provider,
+      model,
+      verbose: values.verbose,
+    });
+    return;
+  }
 
   await reviewCommand({
     startRef: positionals[0],
